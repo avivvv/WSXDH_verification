@@ -2,6 +2,7 @@ import numpy as np
 from sympy.combinatorics.partitions import IntegerPartition
 from calculate.rate_calculator import rate
 from calculate.delta_calculator import delta
+# from sage.all import *
 
 
 def generate_all_partitions(n: int) -> list[dict[int, int]]:
@@ -49,4 +50,8 @@ def create_sp2n_data__n_equals(n: int):
     constant_value_column = np.array((len(all_partitions)-1) * [SX_goal])
     dataset['SX_holds'] = np.less_equal(dataset['r*delta'], constant_value_column)
 
+    # readd regular orbit:
+    # dataset = np.vstack(["insert regular orbit here", dataset])
+
     return dataset
+

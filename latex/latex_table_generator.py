@@ -12,7 +12,7 @@ def generate_latex_table_for_rank(n: int):
     table_start = """
     \\begin{center}
     \\label{table:sp_""" + dimension + """}
-    \\begin{longtable}{||c|c|c|c|c||}
+    \\begin{longtable}[l]{||c|c|c|c|c||}
     \\caption{$r(\\sigma)$ and $\\delta(\\sigma)$ for representations $\\sigma: \\mathfrak{sl}_2 \\to \\mathfrak{sp}_{""" + dimension + """}$}
     \\hline
     Partition $\\textbf{d}_\\sigma$
@@ -35,7 +35,7 @@ def generate_latex_table_for_rank(n: int):
         is_not_reg = to_list(partition) != [2*n];
 
         p_as_string = tostring_as_power(partition)
-        cartan_inverse_times_dynkin_weights = [2,2,2,2,2,2] #wrongggg
+        cartan_inverse_times_dynkin_weights = [2,2,2,2,2,2] #wrongggg because i deleted the function that does this
         citdw_as_string = f"({",".join([str(x) for x in cartan_inverse_times_dynkin_weights])})"
         r = rate(partition, n) if is_not_reg else None
         delt = delta(partition, n)

@@ -38,5 +38,3 @@ def validate_partition(partition: dict[int,int], n: int):
     for a,b in to_dict(p).items():
         if a % 2 != 0 and b % 2 != 0:
             raise ValueError(f"odd element of the partition ({a}) had odd multiplicity ({b}) in partition {tostring_as_sequence(p)}.")
-
-
