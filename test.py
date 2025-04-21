@@ -1,7 +1,6 @@
 from calculate.sp2n_data_supplier import generate_all_partitions, create_sp2n_data__n_equals
 import sys
 import time
-import numpy as np
 
 
 class bcolors:
@@ -16,24 +15,20 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-max_n = int(sys.argv[1])
+min_n = int(sys.argv[1])
+max_n = int(sys.argv[2])
 
-for n in range(2, max_n + 1):
-    # start = time.perf_counter()
-    # print(len(generate_all_partitions(n)))
-    # print(time.perf_counter() - start)
-
-    start2 = time.perf_counter()
+for n in range(min_n, max_n + 1):
     data = create_sp2n_data__n_equals(n)
+
     print(f"n={n}. SX holds:")
-    sx = np.all(data['SX_holds'])
+    sx = data['SX_holds'].all()
     print((bcolors.OKGREEN if sx else bcolors.FAIL) + str(sx) + bcolors.ENDC)
 
-    prev_lex_rate = [float('inf')]
-    prev_lex_rate.extend(data['Rate'])
-    prev_lex_rate = prev_lex_rate[:-1]
-
     print("rate is monotone:")
-    mon = np.all(np.less_equal(data['Rate'], prev_lex_rate))
+    mon = data['locally_monotone'].all()
     print((bcolors.OKGREEN if mon else bcolors.FAIL) + str(mon) + bcolors.ENDC)
-    # print(time.perf_counter() - start2)
+
+    print("Was I right?")
+    b1 = data['was_I_right'].all()
+    print((bcolors.OKGREEN if b1 else bcolors.FAIL) + str(b1) + bcolors.ENDC)

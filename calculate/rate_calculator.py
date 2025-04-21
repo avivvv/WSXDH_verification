@@ -5,6 +5,14 @@ def rate(partition: list[int], n: int) -> float:
     return rate_full_data(partition, n)['rate'];
 
 
+def h_value_sums(partition: list[int], n: int) -> list[int]:
+    return rate_full_data(partition, n)['h_sums'];
+
+
+def max_indices(partition: list[int], n: int) -> list[int]:
+    return rate_full_data(partition, n)['max_indices'];
+
+
 def rate_full_data(partition: list[int], n: int) -> float:
     utils.validate_partition(partition, n);
     p = utils.to_list(partition);
@@ -12,7 +20,7 @@ def rate_full_data(partition: list[int], n: int) -> float:
     if p == [2*n]:
         raise ArithmeticError("the regular orbit is already known to have rate=infinity and should not be calculated in this method.")
     
-    h_sums = sum_up(generate_H(p));
+    h_sums = moving_sum(generate_H(p));
     full_data = {'h_sums': h_sums};
     full_data = calc_rate_from_h_sums(full_data, n);
 
@@ -40,9 +48,9 @@ def calc_rate_from_h_sums(full_data: dict, n: int) -> dict:
 
     fractions = [calc_fraction(h_sums, i, n) for i in range(1, n + 1)]
     max_value = max(fractions);
-    max_index = fractions.index(max_value) + 1;
+    max_indices = [index for index in range(1, len(h_sums)+1) if fractions[index-1] == max_value];
     
-    full_data.update({'rate': 2 * max_value, 'max_index': max_index});
+    full_data.update({'rate': 2 * max_value, 'max_indices': max_indices});
     return full_data;
 
 
@@ -56,7 +64,7 @@ def calc_fraction(h_sums: list[int], i: int, n: int) -> float:
     return numerator / denominator;
 
 
-def sum_up(arr: list[int]) -> list[int]:
+def moving_sum(arr: list[int]) -> list[int]:
     sums = [0];
 
     for x in arr:

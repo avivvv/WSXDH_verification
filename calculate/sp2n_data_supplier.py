@@ -1,8 +1,8 @@
-import numpy as np
+import pandas as pd
 from sympy.combinatorics.partitions import IntegerPartition
-from calculate.rate_calculator import rate
+from calculate.rate_calculator import rate, h_value_sums, max_indices
 from calculate.delta_calculator import delta
-# from sage.all import *
+from calculate.partition_utils import b1
 
 
 def generate_all_partitions(n: int) -> list[dict[int, int]]:
@@ -26,32 +26,34 @@ def generate_all_partitions(n: int) -> list[dict[int, int]]:
 
 
 def create_sp2n_data__n_equals(n: int):
-    all_partitions = generate_all_partitions(n)
+    all_partitions = generate_all_partitions(n)[1:-1] # exclude the regular and trivial partitions.
+    dataset = pd.DataFrame({
+        'Partition': all_partitions,
+        'h_value_sums': [None] * (len(all_partitions)),
+        'max_indices': [None] * (len(all_partitions)),
+        'Rate': [0.0] * (len(all_partitions)),
+        'Delta': [0] * (len(all_partitions)),
+        'r_delta': [0.0] * (len(all_partitions)),
+        'SX_holds': [False] * (len(all_partitions)),
+        'locally_monotone': [False] * (len(all_partitions)),
+        'was_I_right': [False] * (len(all_partitions))
+    })
+    
+    dataset['Rate'] = dataset['Partition'].apply(lambda partition: rate(partition, n))
+    dataset['Delta'] = dataset['Partition'].apply(lambda partition: delta(partition, n))
+    dataset['r_delta'] = dataset['Rate'] * dataset['Delta']
 
-    dtype = [('Partition', 'O'), ('rate_full_data', 'O'), ('h_value_sums', 'O'), ('index_of_rate', 'i2'), ('Rate', 'f8'), ('Delta', 'i8'), ('r*delta', 'f8'), ('SX_holds', '?')]
-    dataset = np.zeros(len(all_partitions)-1, dtype=dtype)
+    dataset['h_value_sums'] = dataset['Partition'].apply(lambda partition: h_value_sums(partition, n))
+    dataset['max_indices'] = dataset['Partition'].apply(lambda partition: max_indices(partition, n))
 
-    dataset['Partition'] = all_partitions[1:] # exclude the regular orbit
+    dataset['SX_holds'] = dataset['r_delta'] <= 2*(n**2)
 
-    fast_rate = np.vectorize(lambda partition: rate(partition, n))
-    # extract_rate = np.vectorize(lambda data: data['rate'])
-    # extract_h_sums = np.vectorize(lambda data: data['h_sums'])
-    # extract_max_index = np.vectorize(lambda data: data['max_index'])
-    fast_delta = np.vectorize(lambda partition: delta(partition, n))
+    prev_lex_rate = dataset['Rate'].shift(1, fill_value=float('inf'))
+    dataset['locally_monotone'] = dataset['Rate'] <= prev_lex_rate
 
-    # dataset['rate_full_data'] = fast_rate_full_data(dataset['Partition'])
-    # dataset['h_value_sums'] = extract_h_sums(dataset['rate_full_data'])
-    # dataset['index_of_rate'] = extract_max_index(dataset['rate_full_data'])
-    dataset['Rate'] = fast_rate(dataset['Partition'])
-    dataset['Delta'] = fast_delta(dataset['Partition'])
-    dataset['r*delta'] = dataset['Rate'] * dataset['Delta']
-
-    SX_goal = 2*(n**2)
-    constant_value_column = np.array((len(all_partitions)-1) * [SX_goal])
-    dataset['SX_holds'] = np.less_equal(dataset['r*delta'], constant_value_column)
-
-    # readd regular orbit:
-    # dataset = np.vstack(["insert regular orbit here", dataset])
+    b1_of_partition = dataset['Partition'].apply(b1)
+    first_max = dataset['max_indices'].apply(lambda l: l[0])
+    dataset['was_I_right'] = b1_of_partition == first_max
 
     return dataset
 

@@ -26,6 +26,13 @@ def tostring_as_sequence(partition):
     return "[" + ", ".join(num_strings) + "]";
 
 
+def b1(partition):
+    partition_as_list = to_list(partition)
+    a1 = max(partition_as_list)
+    
+    return partition_as_list.count(a1)
+
+
 def validate_partition(partition: dict[int,int], n: int):
     if n <= 1:
         raise ValueError(f"n must be >= 2. instead it was {n}.")
