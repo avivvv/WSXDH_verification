@@ -14,14 +14,14 @@ def to_list(partition: dict[int, int]) -> list[int]:
 
 def tostring_as_power(partition):
     p_as_tuples = sorted(to_dict(partition).items(), key=lambda x: x[0], reverse=True);
-    power_strings = [str(a) if b <= 1 else str(a) + "^{" + str(b) + "}" for a,b in p_as_tuples];
+    power_strings = [str(a) + ("" if b <= 1 else "^{" + str(b) + "}") for a,b in p_as_tuples];
 
     return "[" + ", ".join(power_strings) + "]";
 
 
 def tostring_as_sequence(partition):
     p = to_list(partition);
-    num_strings = [str(d) for d in p];
+    num_strings = [str(d) for d in sorted(p)];
 
     return "[" + ", ".join(num_strings) + "]";
 
@@ -29,7 +29,7 @@ def tostring_as_sequence(partition):
 def b1(partition):
     partition_as_list = to_list(partition)
     a1 = max(partition_as_list)
-    
+
     return partition_as_list.count(a1)
 
 
