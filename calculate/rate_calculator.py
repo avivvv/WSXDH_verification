@@ -20,24 +20,25 @@ def rate_full_data(partition: list[int], n: int) -> float:
     if p == [2*n]:
         raise ArithmeticError("the regular orbit is already known to have rate=infinity and should not be calculated in this method.")
     
-    h_sums = moving_sum(generate_H(p));
+    h_sums = prefix_sums(generate_H(p, n));
     full_data = {'h_sums': h_sums};
     full_data = calc_rate_from_h_sums(full_data, n);
 
     return full_data;
 
 
-def generate_H(partition: list[int]) -> list[int]:
-    diagonal = [];
+def generate_H(partition: list[int], n: int) -> list[int]:
+    all_weights = [];
 
     for d in partition:
         weights = list(range(-d+1, d+1, 2));
-        diagonal.append(weights);
+        all_weights.append(weights);
 
-    diagonal = [h for sublist in diagonal for h in sublist];
-    positive_diagonal = [h for h in diagonal if h > 0] + (int(diagonal.count(0)/2) * [0]);
+    # take the union of the lists
+    diagonal = [h for sublist in all_weights for h in sublist];
 
-    return sorted(positive_diagonal, reverse=True);
+    # take the first n highest values (these will be nonnegative)
+    return sorted(diagonal, reverse=True)[:n];
 
 
 def calc_rate_from_h_sums(full_data: dict, n: int) -> dict:
@@ -46,25 +47,19 @@ def calc_rate_from_h_sums(full_data: dict, n: int) -> dict:
     if len(h_sums) != n:
         raise ValueError(f"could not calculate rate. the number of h values in {h_sums} was not equal to n={n}.")
 
-    fractions = [calc_fraction(h_sums, i, n) for i in range(1, n + 1)]
-    max_value = max(fractions);
-    max_indices = [index for index in range(1, len(h_sums)+1) if fractions[index-1] == max_value];
+    r_i_values = [];
+    for i in range(1, n+1):
+        r_i = 2/(1-(h_sums[i-1]/(2*n*i - i**2)))
+        r_i_values.append(r_i);
     
-    full_data.update({'rate': 2 * max_value, 'max_indices': max_indices});
+    r = max(r_i_values);
+    max_indices = [index for index in range(1, n+1) if r_i_values[index-1] == r];
+    
+    full_data.update({'rate': r, 'max_indices': max_indices});
     return full_data;
 
 
-def calc_fraction(h_sums: list[int], i: int, n: int) -> float:
-    numerator = 2 * n * i - i ** 2;
-    denominator = numerator - h_sums[i-1];
-
-    if denominator == 0:
-        raise ArithmeticError(f"could not calculate rate for h values {h_sums} because fractional value was infinity at i={i}.")
-    
-    return numerator / denominator;
-
-
-def moving_sum(arr: list[int]) -> list[int]:
+def prefix_sums(arr: list[int]) -> list[int]:
     sums = [0];
 
     for x in arr:
