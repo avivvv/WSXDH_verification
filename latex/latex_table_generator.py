@@ -1,25 +1,24 @@
 from fractions import Fraction
 import math
-from calculate.rate_calculator import rate, max_indices
-from calculate.delta_calculator import delta
-from calculate.partition_utils import to_list, tostring_as_power
-from calculate.sp2n_data_supplier import generate_all_partitions
+import pandas as pd
+from calculate import partition_utils
 
 
-def generate_latex_table_for_rank(n: int):
+def generate_tex_table(partitions: pd.DataFrame, n: int):
     dimension = str(2*n);
 
     table_start = """
     \\begin{center}
     \\label{table:sp_""" + dimension + """}
-    \\begin{longtable}{||c|c|c|c|c||}
-    \\caption{$r(\\sigma)$ and $\\delta(\\sigma)$ for representations $\\sigma: \\mathfrak{sl}_2 \\to \\mathfrak{sp}_{""" + dimension + """}$}
+    \\begin{longtable}{||c|c|c|c|c|c|c||}
     \\hline
-    Partition $\\textbf{d}_\\sigma$
-    &indices of maximal $r_i(\\sigma)$
-    &$r(\\sigma)$
-    &$\\delta(\\sigma)$
-    &$r(\\sigma) \\cdot \\delta(\\sigma)$
+    Partition \\textbf{d}
+    &Peaks
+    &$\\operatorname{argmax}\\, r_i(\\textbf{d})$
+    &$r(\\textbf{d})$
+    &$\\delta(\\textbf{d})$
+    &$r(\\textbf{d}) \\cdot \\delta(\\textbf{d})$
+    &Remarks
     \\\\ [0.3ex] \\hline\\endhead
     """
 
@@ -31,27 +30,32 @@ def generate_latex_table_for_rank(n: int):
     table_rows = []
     delimiter = " & "
     row_end = " \\\\ \\hline "
-    for partition in generate_all_partitions(n):
-        is_not_reg = to_list(partition) != [2*n];
+    for partition in partitions.to_dict(orient="records"):
+        p = partition['Partition']
+        is_not_reg = p != {(2*n): 1}
+        is_not_triv = p != {1: 2*n}
 
-        p_as_string = tostring_as_power(partition)
-        
-        max_i = str(max_indices(partition, n)) if is_not_reg else None
-        r = rate(partition, n) if is_not_reg else None
-        delt = delta(partition, n)
+        p_as_string = partition_utils.tostring(p)
+        max_i = ",".join([str(num) for num in partition['max_indices']]) if is_not_reg else None
+        peaks = ",".join([str(num) for num in partition['Peaks']])
+        r = partition['Rate'] if is_not_reg else None
+        delt = partition['Delta']
+        remarks = partition['Remarks']
         
         table_rows.append(delimiter.join([
             f"${p_as_string}$",
+            f"${peaks}$" if is_not_triv else "NA",
             f"${max_i}$" if is_not_reg else "NA",
-            f"${format_frac(r) if is_not_reg else "\\infty"}$",
-            f"${format_frac(delt)}$",
-            f"${format_frac(r*delt)}$" if is_not_reg else "NA"
+            f"${format_number(r) if is_not_reg else "\\infty"}$",
+            f"${format_number(delt)}$",
+            f"${format_number(r*delt)}$" if is_not_reg else "NA",
+            remarks if remarks != '' else '-'
         ]) + row_end)
     
     return table_start + f"\n".join(table_rows) + table_end
 
 
-def format_frac(num: float) -> str:
+def format_number(num: float) -> str:
     frac = Fraction(num).limit_denominator()
 
     if frac.is_integer():

@@ -1,4 +1,4 @@
-from calculate.sp2n_data_supplier import generate_all_partitions, create_sp2n_data__n_equals
+from calculate.sp2n_data_supplier import create_sp2n_data__n_equals
 import sys
 import time
 
@@ -15,20 +15,29 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
+def assert_hypothesis(hypothesis_name: str):
+    v = data[hypothesis_name].all()
+    print(f"n={n}. {hypothesis_name} holds: {(bcolors.OKGREEN if v else bcolors.FAIL)}{str(v)}{bcolors.ENDC}")
+
+    return v
+
+
 min_n = int(sys.argv[1])
 max_n = int(sys.argv[2])
 
+assertions = {}
+hypotheses_to_assert = ['WSXDH', 'rate_decreases', 'b1_maximizes_local_rate', 'Hyp_1.5', 'Hyp_3.3.3_part1', 'Hyp_3.3.3_part2']
+
 for n in range(min_n, max_n + 1):
-    data = create_sp2n_data__n_equals(n)
+    start_time = time.perf_counter()
+    data = create_sp2n_data__n_equals(n, printable_version=False)
+    print(f"n={n}. Populating took: {(time.perf_counter() - start_time):.4f} seconds.")
 
-    print(f"n={n}. SX holds:")
-    sx = data['SX_holds'].all()
-    print((bcolors.OKGREEN if sx else bcolors.FAIL) + str(sx) + bcolors.ENDC)
+    assertions[n] = [assert_hypothesis(hyp) for hyp in hypotheses_to_assert]    
+    print(f"n={n}. Populating and asserting took: {(time.perf_counter() - start_time):.4f} seconds.")
 
-    print("rate is monotone:")
-    mon = data['locally_monotone'].all()
-    print((bcolors.OKGREEN if mon else bcolors.FAIL) + str(mon) + bcolors.ENDC)
+print(f"{bcolors.BOLD}To summarize, for all n between {min_n} and {max_n}:{bcolors.ENDC}")
 
-    print("Was I right?")
-    b1 = data['was_I_right'].all()
-    print((bcolors.OKGREEN if b1 else bcolors.FAIL) + str(b1) + bcolors.ENDC)
+for hyp in hypotheses_to_assert:
+    v = all([assertions[n][hyp] for n in range(min_n, max_n + 1)])
+    print(f"{hyp} holds: {(bcolors.OKGREEN if v else bcolors.FAIL)}{str(v)}{bcolors.ENDC}")
