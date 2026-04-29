@@ -1,60 +1,64 @@
 import pandas as pd
 from sympy.combinatorics.partitions import IntegerPartition
-from calculate.sp2n_calculator import delta, local_rates_at_peaks, b1, hypothesized_rate
+from calculate.partition_utils import a1, b1
+from .sp2n_calculator import delta, local_rates_at_peaks, hypothesized_rate, indices_of_max_local_rate, verify_hypothesis_3_3_4
 import time
 
 
-def create_sp2n_data__n_equals(n: int, printable_version: bool) -> pd.DataFrame:
+def create_sp2n_data__n_equals(n: int, verify_conjectures: bool = False, printable_version: bool = False) -> pd.DataFrame:
     partitions = generate_all_partitions(n)
     data = generate_basic_data(partitions, n)
 
-    return enrich_sp2n_data_for_printing(data, n) if printable_version else enrich_sp2n_data_for_verification(data, n)
+    if verify_conjectures:
+        return enrich_sp2n_data_for_verification(data, n)
+    
+    if printable_version:
+        return enrich_sp2n_data_for_printing(data, n)
 
 
 
 def generate_all_partitions(n: int) -> list[dict[int, int]]:
-    reg = IntegerPartition([2*n]);
+    reg = IntegerPartition([2*n])
     p = reg.copy()
-    all_partitions = [];
-    first_run = True;
+    all_partitions = []
+    first_run = True
 
     while p != reg or first_run:
-        p_dict = p.as_dict();
+        partition = p.as_dict()
 
-        # The condition on partitions for sp_{2n} is that every odd part occurs with even multiplicity.
-        if all([b % 2 == 0 for a,b in p_dict.items() if a % 2 == 1]):
-            all_partitions.append(p_dict);
+        # The condition on partitions for sp2n is that every odd part occurs with even multiplicity.
+        if all([b % 2 == 0 for a,b in partition.items() if a % 2 == 1]):
+            all_partitions.append(partition)
         
-        p = p.prev_lex();
-        first_run = False;
+        p = p.prev_lex()
+        first_run = False
     
-    return all_partitions;
+    return all_partitions
 
 
 
 def generate_basic_data(all_partitions: list[dict[int, int]], n: int) -> pd.DataFrame:
-    data_set_length = len(all_partitions) - 2
+    partitions = all_partitions[1:-1]  # exclude the regular and trivial partitions.
     dataset = pd.DataFrame({
-        'Partition': all_partitions[1:-1], # exclude the regular and trivial partitions.
-        'Peaks': [None] * data_set_length,
-        'max_indices': [None] * data_set_length,
-        'local_rates_at_peaks': [None] * data_set_length,
-        'Rate': [0.0] * data_set_length,
-        'Delta': [0] * data_set_length,
-        'r_delta': [0.0] * data_set_length
+        'Partition': partitions,
+        'a_1': [a1(partition) for partition in partitions],
+        'b_1': [b1(partition) for partition in partitions]
     })
     
     dataset['local_rates_at_peaks'] = dataset['Partition'].map(lambda partition: local_rates_at_peaks(partition, n))
     dataset['Rate'] = dataset['local_rates_at_peaks'].map(lambda local_rates: max(local_rates.values()))
     dataset['Delta'] = dataset['Partition'].map(delta)
     dataset['r_delta'] = dataset['Rate'] * dataset['Delta']
-    dataset['Peaks'] = dataset['local_rates_at_peaks'].map(lambda local_rates: local_rates.keys())
-    dataset['max_indices'] = dataset[['local_rates_at_peaks', 'Rate']].apply(indices_of_max_local_rate_DF_version, axis=1)
+    dataset['max_indices'] = [
+        indices_of_max_local_rate(local_rates_by_peak, rate)
+        for local_rates_by_peak, rate in zip(dataset['local_rates_at_peaks'], dataset['Rate'])
+    ]
     
     return dataset
 
 
 def enrich_sp2n_data_for_printing(dataset: pd.DataFrame, n: int):
+    dataset['Peaks'] = dataset['local_rates_at_peaks'].map(lambda local_rates_by_peak: local_rates_by_peak.keys())
     dataset = add_regular_and_trivial_partitions(dataset, n)
     dataset['Remarks'] = dataset['Partition'].map(lambda partition: get_remarks(partition, n))
 
@@ -62,51 +66,48 @@ def enrich_sp2n_data_for_printing(dataset: pd.DataFrame, n: int):
 
 
 def enrich_sp2n_data_for_verification(dataset: pd.DataFrame, n: int) -> pd.DataFrame:
-    WSXDH_bound = 2*(n**2)
-    dataset['WSXDH'] = dataset['r_delta'] <= WSXDH_bound
+    # Since hypothesized_rate only performs arithmetic, we can vectorize it.
+    dataset['hypothesized_rate'] = hypothesized_rate(dataset['a_1'], dataset['b_1'], n)
+    dataset['Hyp_1.5'] = dataset['Rate'] == dataset['hypothesized_rate'] # Hypothesis 1.5 - main conjecture.
 
     prev_lex_rate = dataset['Rate'].shift(1, fill_value=float('inf'))
-    dataset['rate_decreases'] = dataset['Rate'] <= prev_lex_rate # Hyp_1.4
+    dataset['rate_monotone'] = dataset['Rate'] <= prev_lex_rate # Hypothesis 1.4.
 
-    dataset['b_1'] = dataset['Partition'].map(b1)
+    WSXDH_bound = 2*(n**2)
+    dataset['WSXDH'] = dataset['r_delta'] <= WSXDH_bound # Hypothesis 1.3.
+
     first_max = dataset['max_indices'].apply(lambda l: l[0] if l else 0)
-    dataset['b1_maximizes_local_rate'] = dataset['b_1'] == first_max # Hyp_1.5 - extra sanity check
+    dataset['b1_maximizes_local_rate'] = dataset['b_1'] == first_max # Independent verification for Hypothesis 1.5.
 
-    dataset['hypothesized_rate'] = dataset['Partition'].map(lambda p: hypothesized_rate(p, n))
-    dataset['Hyp_1.5'] = dataset['Rate'] == dataset['hypothesized_rate']
+    # Hypothesis 3.3.3 - Check descending order of local rate values.
+    dataset['Hyp_3.3.3'] = dataset['local_rates_at_peaks'].map(
+        lambda d: all(r_i >= r_j for r_i, r_j in zip(d.values(), list(d.values())[1:]))
+    )
 
-    dataset['Hyp_3.3.3_part1'] = dataset['local_rates_at_peaks'].map(lambda x: list(x.values())).map(lambda x: x == sorted(x, reverse=True))
-    dataset['Hyp_3.3.3_part2'] = dataset[['Partition','max_indices']].apply(does_hypothesis_3_3_3_hold_DF_version, axis=1)
+    # Hypothesis 3.3.4 - Check that max local rate is obtained uniquely at b_1, excluding certain partition families.
+    dataset['Hyp_3.3.4'] = [
+        verify_hypothesis_3_3_4(partition.keys(), local_rates_by_peak, b_1, rate)
+        for partition, local_rates_by_peak, b_1, rate in zip(
+            dataset['Partition'],
+            dataset['local_rates_at_peaks'],
+            dataset['b_1'],
+            dataset['Rate']
+        )
+    ]
 
     return dataset
 
 
 def add_regular_and_trivial_partitions(dataset: pd.DataFrame, n: int) -> pd.DataFrame:
-    regular = [{(2*n): 1}, range(1, n+1), None, None, None, 0, None]
-    trivial = [{1: 2*n}, [], range(1, n+1), None, 2, n**2, 2*(n**2)]
+    cols = dataset.columns.tolist()
+    # Columns: Partition, a_1, b_1, local_rates_at_peaks, Rate, Delta, r_delta, max_indices, Peaks
+    regular_vals = [{(2*n): 1}, range(1, n+1), None, None, None, 0, None, None, range(1, n+1)]
+    trivial_vals = [{1: 2*n}, [], range(1, n+1), None, 2, n**2, 2*(n**2), range(1, n+1), []]
 
-    dataset.loc[len(dataset)] = trivial
-    dataset.index = dataset.index + 1
-    dataset.loc[0] = regular
+    regular_row = pd.DataFrame([dict(zip(cols, regular_vals))])
+    trivial_row = pd.DataFrame([dict(zip(cols, trivial_vals))])
 
-    return dataset.sort_index()
-
-
-def indices_of_max_local_rate_DF_version(x):
-    local_rates = x['local_rates_at_peaks']
-    global_rate = x['Rate']
-
-    return [i for i in local_rates.keys() if local_rates[i] == global_rate]
-
-
-def does_hypothesis_3_3_3_hold_DF_version(x):
-    parts = x['Partition'].keys()
-    max_indices = x['max_indices']
- 
-    # The conditions after the 'or' are equivalent to the partition being either of
-    # the type [a^b] or of the type [a^b, (a-1)^c].
-    # In these cases the hypothesis does not apply, and thus we return True.
-    return len(max_indices) == 1 or (len(parts) <= 2 and (max(parts) - min(parts) <= 1))
+    return pd.concat([regular_row, dataset, trivial_row], ignore_index=True)
 
 
 def get_remarks(partition: dict[int, int], n: int) -> str:
@@ -131,4 +132,3 @@ def get_remarks(partition: dict[int, int], n: int) -> str:
             return '$[a^b, 1^c]$'
         
     return ''
-

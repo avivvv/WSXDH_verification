@@ -1,11 +1,11 @@
 from fractions import Fraction
 import math
 import pandas as pd
-from calculate import partition_utils
+from calculate.partition_utils import tostring
 
 
 def generate_tex_table(partitions: pd.DataFrame, n: int):
-    dimension = str(2*n);
+    dimension = str(2*n)
 
     table_start = """
     \\begin{center}
@@ -35,7 +35,7 @@ def generate_tex_table(partitions: pd.DataFrame, n: int):
         is_not_reg = p != {(2*n): 1}
         is_not_triv = p != {1: 2*n}
 
-        p_as_string = partition_utils.tostring(p)
+        p_as_string = tostring(p)
         max_i = ",".join([str(num) for num in partition['max_indices']]) if is_not_reg else None
         peaks = ",".join([str(num) for num in partition['Peaks']])
         r = partition['Rate'] if is_not_reg else None
@@ -59,8 +59,8 @@ def format_number(num: float) -> str:
     frac = Fraction(num).limit_denominator()
 
     if frac.is_integer():
-        return format(frac, '');
+        return format(frac, '')
 
-    int_val = math.floor(num);
+    int_val = math.floor(num)
 
     return f"{str(int_val)} < {format(frac, '')} < {str(int_val+1)}"
