@@ -1,7 +1,7 @@
 from fractions import Fraction
 import math
 import pandas as pd
-from calculate.partition_utils import tostring
+from calculate.partition_utils import format_partition
 
 
 def generate_tex_table(partitions: pd.DataFrame, n: int):
@@ -35,7 +35,7 @@ def generate_tex_table(partitions: pd.DataFrame, n: int):
         is_not_reg = p != {(2*n): 1}
         is_not_triv = p != {1: 2*n}
 
-        p_as_string = tostring(p)
+        p_as_string = format_partition(p)
         max_i = ",".join([str(num) for num in partition['max_indices']]) if is_not_reg else None
         peaks = ",".join([str(num) for num in partition['Peaks']])
         r = partition['Rate'] if is_not_reg else None

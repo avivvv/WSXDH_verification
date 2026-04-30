@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "nilpotent-orbits-sp2n"
+version = "1.0.0"
+description = "Computational verification of the Weak Sarnak-Xue Density Hypothesis for SO_{2n+1}(R)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "sympy",
+    "pylatex",
+]
+
+[project.scripts]
+verify-conjectures = "run.verify_conjectures:main"
+print-tables = "run.print_tables:main"
