@@ -6,11 +6,6 @@ partitions of 2n together with their associated invariants (delta, local
 rates, global rate) and conjecture verification flags.
 
 The main entry point is :func:`create_sp2n_dataset`.
-
-References
-----------
-[CM93] D. H. Collingwood and W. M. McGovern, *Nilpotent Orbits in Semisimple
-       Lie Algebras*, Van Nostrand Reinhold, 1993.
 """
 
 import pandas as pd
@@ -55,6 +50,8 @@ def create_sp2n_dataset(
     """
     partitions = generate_all_partitions(n)
     data = generate_basic_data(partitions, n)
+    if verify_conjectures and printable_version:
+        raise ValueError("The parameters 'verify_conjectures' and 'printable_version' are mutually exclusive.")
     if verify_conjectures:
         return enrich_sp2n_data_for_verification(data, n)
     if printable_version:
@@ -104,8 +101,7 @@ def generate_basic_data(all_partitions: list[Partition], n: int) -> pd.DataFrame
     Parameters
     ----------
     all_partitions:
-        All symplectic partitions of 2n, as returned by
-        :func:`generate_all_partitions`.
+        All symplectic partitions of 2n, as returned by :func:`generate_all_partitions`.
     n:
         The rank of the Lie algebra sp_{2n}.
 
@@ -115,17 +111,17 @@ def generate_basic_data(all_partitions: list[Partition], n: int) -> pd.DataFrame
         DataFrame with columns: Partition, a_1, b_1, local_rates_at_peaks,
         Rate, Delta, r_delta, max_indices.
     """
-    partitions = all_partitions[1:-1]  # exclude regular and trivial partitions
+    partitions = all_partitions[1:-1]  # Exclude regular and trivial partitions
     dataset = pd.DataFrame({
         "Partition": partitions,
-        "a_1":       [a1(partition) for partition in partitions],
-        "b_1":       [b1(partition) for partition in partitions],
+        "a_1": [a1(partition) for partition in partitions],
+        "b_1": [b1(partition) for partition in partitions],
     })
     dataset["local_rates_at_peaks"] = dataset["Partition"].map(
         lambda partition: local_rates_at_peaks(partition, n)
     )
-    dataset["Rate"]    = dataset["local_rates_at_peaks"].map(lambda d: max(d.values()))
-    dataset["Delta"]   = dataset["Partition"].map(delta)
+    dataset["Rate"] = dataset["local_rates_at_peaks"].map(lambda d: max(d.values()))
+    dataset["Delta"] = dataset["Partition"].map(delta)
     dataset["r_delta"] = dataset["Rate"] * dataset["Delta"]
     dataset["max_indices"] = [
         indices_of_max_local_rate(local_rates_by_peak, rate)
@@ -149,7 +145,7 @@ def enrich_sp2n_data_for_printing(dataset: pd.DataFrame, n: int) -> pd.DataFrame
     Returns
     -------
     pd.DataFrame
-        The enriched DataFrame with additional columns Peaks and Remarks,
+        The enriched DataFrame with the additional columns 'Peaks' and 'Remarks',
         and with the regular and trivial partition rows added.
     """
     dataset["Peaks"] = dataset["local_rates_at_peaks"].map(
@@ -157,7 +153,7 @@ def enrich_sp2n_data_for_printing(dataset: pd.DataFrame, n: int) -> pd.DataFrame
     )
     dataset = add_regular_and_trivial_partitions(dataset, n)
     dataset["Remarks"] = dataset["Partition"].map(
-        lambda partition: get_remarks(partition, n)
+        lambda partition: get_label(partition, n)
     )
     return dataset
 
@@ -176,8 +172,7 @@ def enrich_sp2n_data_for_verification(dataset: pd.DataFrame, n: int) -> pd.DataF
     -------
     pd.DataFrame
         The enriched DataFrame with additional columns: hypothesized_rate,
-        Hyp_1.5, rate_monotone, WSXDH, b1_maximizes_local_rate,
-        Hyp_3.3.3, Hyp_3.3.4.
+        Hyp_1.5, rate_monotone, WSXDH, b1_maximizes_local_rate, Hyp_3.3.3, Hyp_3.3.4.
     """
     # Since hypothesized_rate performs only arithmetic, it supports pandas vectorisation directly.
     dataset["hypothesized_rate"] = hypothesized_rate(dataset["a_1"], dataset["b_1"], n)
@@ -257,8 +252,8 @@ def add_regular_and_trivial_partitions(
     return pd.concat([regular, dataset, trivial], ignore_index=True)
 
 
-def get_remarks(partition: Partition, n: int) -> str:
-    """Return the remarks for *partition* in the LaTeX table.
+def get_label(partition: Partition, n: int) -> str:
+    """Generate a descriptive label for *partition*.
 
     Parameters
     ----------
