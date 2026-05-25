@@ -11,8 +11,43 @@ It also provides the conjecture-checking helpers used by
 :mod:`calculate.sp2n_data_supplier`.
 """
 
-from .partition_utils import Partition, a1, b1
+from sympy.combinatorics import IntegerPartition
 
+from .partition_utils import Partition, a1
+
+
+def generate_all_partitions(n: int) -> list[Partition]:
+    """Return all symplectic partitions of 2n in reverse-lexicographic order.
+
+    A partition of 2n is *symplectic* (of type C) if every odd part occurs
+    with even multiplicity. These are precisely the partitions that label
+    nilpotent orbits in sp_{2n} (see [CM93, Theorem 5.1.3]).
+
+    Parameters
+    ----------
+    n:
+        The rank of the Lie algebra sp_{2n}.
+
+    Returns
+    -------
+    list[Partition]
+        All symplectic partitions of 2n, listed in reverse-lexicographic
+        order, starting with the regular partition ``{2n: 1}`` and ending
+        with the trivial partition ``{1: 2n}``.
+    """
+    reg = IntegerPartition([2 * n])
+    p = reg.copy()
+    all_partitions: list[Partition] = []
+    first_run = True
+    while p != reg or first_run:
+        partition = p.as_dict()
+        if all(b % 2 == 0 for a, b in partition.items() if a % 2 == 1):
+            all_partitions.append(partition)
+        p = p.prev_lex()
+        first_run = False
+
+    return all_partitions
+    
 
 def delta(partition: Partition) -> int:
     """Compute delta(d) from Proposition 3.1.10.

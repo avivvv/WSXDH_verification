@@ -9,10 +9,11 @@ The main entry point is :func:`create_sp2n_dataset`.
 """
 
 import pandas as pd
-from sympy.combinatorics.partitions import IntegerPartition
 
-from calculate.partition_utils import Partition, a1, b1
+from src.partition_utils import Partition, a1, b1
+from src.pipeline.pipeline import PipelineBuilder
 from .sp2n_calculator import (
+    generate_all_partitions,
     delta,
     hypothesized_rate,
     indices_of_max_local_rate,
@@ -48,6 +49,23 @@ def create_sp2n_dataset(
         Base columns: Partition, a_1, b_1, local_rates_at_peaks, Rate,
         Delta, r_delta, max_indices.
     """
+    # use this later to replace existing code:
+    # pipeline = (
+    #     PipelineBuilder()
+    #     .source("Partition", generate_all_partitions, n)
+    #     .custom("Exclude regular and trivial partitions", lambda partitions: partitions[1:-1])
+    #     .compute("a1", a1)
+    #     .compute("b1", b1)
+    #     .compute("local_rates_at_peaks", lambda partition: local_rates_at_peaks(partition, n))
+    #     .compute("Rate", lambda local_rates_by_peak: max(local_rates_by_peak.values()), source_col="local_rates_at_peaks")
+    #     .compute("Delta", delta)
+    #     .compute("r_delta", lambda row: row["Rate"] * row["Delta"], vectorized=True)
+    #     .verify("WSXDH", lambda row: row["r_delta"] <= 2 * (n ** 2), vectorized=True)
+    #     .build()
+    # )
+
+    # pipeline.run()
+
     partitions = generate_all_partitions(n)
     data = generate_basic_data(partitions, n)
     if verify_conjectures and printable_version:
@@ -57,39 +75,6 @@ def create_sp2n_dataset(
     if printable_version:
         return enrich_sp2n_data_for_printing(data, n)
     return data
-
-
-def generate_all_partitions(n: int) -> list[Partition]:
-    """Return all symplectic partitions of 2n in reverse-lexicographic order.
-
-    A partition of 2n is *symplectic* (of type C) if every odd part occurs
-    with even multiplicity. These are precisely the partitions that label
-    nilpotent orbits in sp_{2n} (see [CM93, Theorem 5.1.3]).
-
-    Parameters
-    ----------
-    n:
-        The rank of the Lie algebra sp_{2n}.
-
-    Returns
-    -------
-    list[Partition]
-        All symplectic partitions of 2n, listed in reverse-lexicographic
-        order, starting with the regular partition ``{2n: 1}`` and ending
-        with the trivial partition ``{1: 2n}``.
-    """
-    reg = IntegerPartition([2 * n])
-    p = reg.copy()
-    all_partitions: list[Partition] = []
-    first_run = True
-    while p != reg or first_run:
-        partition = p.as_dict()
-        if all(b % 2 == 0 for a, b in partition.items() if a % 2 == 1):
-            all_partitions.append(partition)
-        p = p.prev_lex()
-        first_run = False
-
-    return all_partitions
 
 
 def generate_basic_data(all_partitions: list[Partition], n: int) -> pd.DataFrame:
@@ -111,7 +96,7 @@ def generate_basic_data(all_partitions: list[Partition], n: int) -> pd.DataFrame
         DataFrame with columns: Partition, a_1, b_1, local_rates_at_peaks,
         Rate, Delta, r_delta, max_indices.
     """
-    partitions = all_partitions[1:-1]  # Exclude regular and trivial partitions
+    partitions = all_partitions[1:-1] 
     dataset = pd.DataFrame({
         "Partition": partitions,
         "a_1": [a1(partition) for partition in partitions],

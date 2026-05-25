@@ -24,7 +24,7 @@ Verify all conjectures for n = 2, 3, ..., 50::
 
 import sys
 
-from calculate.sp2n_data_supplier import create_sp2n_dataset
+from src.sp2n_data_supplier import create_sp2n_dataset
 from pandas import DataFrame
 
 

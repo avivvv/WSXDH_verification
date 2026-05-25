@@ -14,7 +14,7 @@ import os
 from pylatex import Document, NoEscape, NewPage, Package, Section
 
 from .latex_table_generator import generate_tex_table
-from calculate.sp2n_data_supplier import create_sp2n_dataset
+from src.sp2n_data_supplier import create_sp2n_dataset
 
 _RESULTS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
