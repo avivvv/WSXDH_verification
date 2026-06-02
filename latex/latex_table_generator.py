@@ -10,7 +10,7 @@ from fractions import Fraction
 
 import pandas as pd
 
-from src.partition_utils import Partition, format_partition
+from utils.partitions import Partition, format_partition
 
 
 def generate_tex_table(partitions: pd.DataFrame, n: int) -> str:

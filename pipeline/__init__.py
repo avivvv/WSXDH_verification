@@ -1,12 +1,12 @@
 from .pipeline import Pipeline, PipelineBuilder, PipelineError
-from .step import Step, SourceStep, ComputeStep, VerifyStep, SaveStep, VerificationError
+from .step import Step, CreateStep, ComputeStep, VerifyStep, SaveStep, VerificationError
 
 __all__ = [
     "Pipeline",
     "PipelineBuilder",
     "PipelineError",
     "Step",
-    "SourceStep",
+    "CreateStep",
     "ComputeStep",
     "VerifyStep",
     "SaveStep",

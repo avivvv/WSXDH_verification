@@ -11,42 +11,7 @@ It also provides the conjecture-checking helpers used by
 :mod:`calculate.sp2n_data_supplier`.
 """
 
-from sympy.combinatorics import IntegerPartition
-
-from .partition_utils import Partition, a1
-
-
-def generate_all_partitions(n: int) -> list[Partition]:
-    """Return all symplectic partitions of 2n in reverse-lexicographic order.
-
-    A partition of 2n is *symplectic* (of type C) if every odd part occurs
-    with even multiplicity. These are precisely the partitions that label
-    nilpotent orbits in sp_{2n} (see [CM93, Theorem 5.1.3]).
-
-    Parameters
-    ----------
-    n:
-        The rank of the Lie algebra sp_{2n}.
-
-    Returns
-    -------
-    list[Partition]
-        All symplectic partitions of 2n, listed in reverse-lexicographic
-        order, starting with the regular partition ``{2n: 1}`` and ending
-        with the trivial partition ``{1: 2n}``.
-    """
-    reg = IntegerPartition([2 * n])
-    p = reg.copy()
-    all_partitions: list[Partition] = []
-    first_run = True
-    while p != reg or first_run:
-        partition = p.as_dict()
-        if all(b % 2 == 0 for a, b in partition.items() if a % 2 == 1):
-            all_partitions.append(partition)
-        p = p.prev_lex()
-        first_run = False
-
-    return all_partitions
+from utils.partitions import Partition, a1
     
 
 def delta(partition: Partition) -> int:
@@ -156,6 +121,22 @@ def local_rates_at_peaks(partition: Partition, n: int) -> dict[int, float]:
     return local_rates_by_peak
 
 
+def verify_hypothesis_3_3_3(local_rates_by_peak: dict[int, float]) -> bool:
+    """Check whether Hypothesis 3.3.3 holds for the given local rates.
+
+    Hypothesis 3.3.3 asserts that the local rates r_p(d) are non-increasing
+    along the peaks, i.e. r_1(d) >= r_2(d) >= ... >= r_k(d) where p_1 < p_2 < ... < p_k are the peaks.
+
+    Parameters
+    ----------
+    local_rates_by_peak:
+        A dictionary ``{p: r_p}`` whose keys are the peak indices and whose
+        values are the local rates at those peaks, in decreasing order of p.
+    """
+    local_rates = list(local_rates_by_peak.values())
+    return all(r_i >= r_j for r_i, r_j in zip(local_rates, local_rates[1:]))
+
+
 def verify_hypothesis_3_3_4(
     parts: list[int],
     local_rates_by_peak: dict[int, float],
@@ -222,7 +203,7 @@ def hypothesized_rate(a_1: int, b_1: int, n: int) -> float:
 
     .. math::
 
-        r(\\mathbf{d}) = r_{b_1}(\\mathbf{d}) = \\frac{4n - 2b_1}{2n - a_1 - b_1 + 1}.
+        r_{b_1}(\\mathbf{d}) = \\frac{4n - 2b_1}{2n - a_1 - b_1 + 1}.
 
     Parameters
     ----------

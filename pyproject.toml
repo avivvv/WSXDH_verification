@@ -12,6 +12,7 @@ dependencies = [
     "pandas",
     "sympy",
     "pylatex",
+    "rich",
 ]
 
 [tool.setuptools.packages.find]
