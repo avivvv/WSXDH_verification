@@ -7,5 +7,5 @@ if __name__ == "__main__":
         sys.exit(1)
     
     n = int(sys.argv[1])
-    csv_save_path = f"results/{n}.csv"
+    csv_save_path = f"results/sp{2*n}.csv"
     sp2n_pipeline(n, csv_save_path).run()

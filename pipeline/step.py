@@ -22,14 +22,14 @@ class Step(ABC):
 
 class CreateStep(Step):
     """
-    Generates the initial rows by calling fn(**kwargs).
-    fn must return an iterable of objects to be stored in the specified column.
+    Generates the initial data by calling fn(**kwargs).
+    fn must return an iterable of objects (e.g. partitions) to be stored in the specified column.
     Each kwarg (e.g. n=10) is stored as a column in every row of the data.
     """
 
-    def __init__(self, column: str, fn, **kwargs):
-        self._column = column
+    def __init__(self, fn, column: str = "Partition", **kwargs):
         self._fn = fn
+        self._column = column
         self._kwargs = kwargs
 
 
@@ -42,8 +42,11 @@ class CreateStep(Step):
     def run(self, _: pd.DataFrame) -> pd.DataFrame:
         data = self._fn(**self._kwargs)
         df = pd.DataFrame({self._column: list(data)})
+        
         for k, v in self._kwargs.items():
             df[k] = v
+
+        print(f"Created dataset with {len(data)} partitions using {self._fn.__name__} with {self._kwargs}.")
 
         return df
 
@@ -137,7 +140,7 @@ class VerifyStep(Step):
         total = len(results)
         passed = results.sum()
         console.print(f"        {bold(self._result_col)}:   {status_as_text[all(results)]}")
-        console.print(f"        {passed}/{total} rows passed.")
+        console.print(f"        {passed}/{total} partitions passed.")
 
 
     def raise_if_necessary(self, data, results):
@@ -165,7 +168,7 @@ class LoadStep(Step):
 
     def run(self) -> pd.DataFrame:
         data = pd.read_csv(self._path)
-        console.print(f"    (loaded {len(data)} rows from {self._path})")
+        console.print(f"    Loaded dataset with {len(data)} partitions from {self._path}")
         return data
 
 
@@ -193,7 +196,7 @@ class SaveStep(Step):
         
         self._path.parent.mkdir(parents=True, exist_ok=True)
         data.to_csv(self._path, index=False)
-        console.print(f"    (saved {len(data)} rows to {self._path})")
+        console.print(f"    Saved {len(data)} rows to {self._path}")
         return data
 
 

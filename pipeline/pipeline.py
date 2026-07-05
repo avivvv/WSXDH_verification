@@ -10,15 +10,16 @@ class Pipeline:
         self._steps = steps
 
 
-    def run(self) -> pd.DataFrame:
-        console.print(f"Running pipeline.")
+    def run(self, verbose=False) -> pd.DataFrame:
+        console.print(f"Running pipeline ({len(self._steps)} steps).")
 
         data: pd.DataFrame = pd.DataFrame()
         counter_width = len(str(len(self._steps)))
 
         for i, step in enumerate(self._steps, 1):
-            label = f"[{i:{counter_width}}/{len(self._steps)}]"
-            console.print(f"  {label} {step.name}.")
+            if verbose:
+                step_number = f"[{i:{counter_width}}/{len(self._steps)}]"
+                console.print(f"  {step_number} {step.name}.")
             data = step.run(data)
 
         return data

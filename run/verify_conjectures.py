@@ -24,26 +24,20 @@ Verify all conjectures for n = 2, 3, ..., 50::
 
 import sys
 
-from src.sp2n_data_supplier import create_sp2n_dataset
+from rich.table import Table
+
+from core.sp2n_pipeline import create_sp2n_dataset
 from pandas import DataFrame
-
-
-class Color:
-    """ANSI escape codes for terminal colour output."""
-    GREEN = "\033[92m"
-    FAIL  = "\033[91m"
-    ENDC  = "\033[0m"
-    BOLD  = "\033[1m"
+from utils.styles import console
 
 
 def to_string_color_coded(value: bool) -> str:
-    """Return *value* as a colour-coded string for terminal output."""
-    color_code = Color.GREEN if value else Color.FAIL
-    return f"{color_code}{value}{Color.ENDC}"
+    """Return *value* as a colour-coded rich markup string."""
+    return f"[green]{value}[/green]" if value else f"[red]{value}[/red]"
 
 
 def verify_hypothesis(data: DataFrame, hypothesis_name: str, n: int) -> bool:
-    """Print and return whether *hypothesis_name* holds for all rows of *data* at rank *n*.
+    """Print and return whether *hypothesis_name* holds for all rows (partitions) of *data* at rank *n*.
 
     Parameters
     ----------
@@ -63,7 +57,7 @@ def verify_hypothesis(data: DataFrame, hypothesis_name: str, n: int) -> bool:
         ``True`` if the hypothesis holds for every partition in *data*.
     """
     hypothesis_holds = bool(data[hypothesis_name].all())
-    print(f"n={n}. {hypothesis_name} holds: {to_string_color_coded(hypothesis_holds)}")
+    console.print(f"n={n}. {hypothesis_name} holds: {to_string_color_coded(hypothesis_holds)}")
     return hypothesis_holds
 
 
@@ -88,12 +82,15 @@ def main() -> None:
             hyp: verify_hypothesis(data, hyp, n)
             for hyp in hypotheses_to_verify
         }
-        print("-" * 50)
+        console.print("-" * 50)
 
-    print(f"\n\n{Color.BOLD}Summary of all n from {min_n} to {max_n}:{Color.ENDC}\n")
+    table = Table(title=f"Summary: n = {min_n} to {max_n}")
+    table.add_column("Hypothesis", style="bold")
+    table.add_column("Holds for all n")
     for hyp in hypotheses_to_verify:
         holds_for_all_n = all(verified_cases[n][hyp] for n in range(min_n, max_n + 1))
-        print(f"{hyp} holds: {to_string_color_coded(holds_for_all_n)}")
+        table.add_row(hyp, to_string_color_coded(holds_for_all_n))
+    console.print(table)
 
 
 if __name__ == "__main__":

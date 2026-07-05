@@ -11,7 +11,7 @@ The main entry point is :func:`create_sp2n_dataset`.
 import pandas as pd
 
 from utils.partitions import Partition, a1, b1, generate_all_sp2n_partitions
-from pipeline.pipeline import PipelineBuilder
+from pipeline import Pipeline, PipelineBuilder
 from .sp2n_helper import (
     delta,
     hypothesized_rate,
@@ -22,7 +22,7 @@ from .sp2n_helper import (
 )
 
 
-def sp2n_pipeline(n: int, path_to_save: str) -> pd.DataFrame:
+def sp2n_pipeline(n: int, path_to_save: str) -> Pipeline:
     """Build the partition dataset for sp_{2n}.
 
     Parameters
@@ -32,6 +32,9 @@ def sp2n_pipeline(n: int, path_to_save: str) -> pd.DataFrame:
     path_to_save:
         The file path where the dataset will be saved.
     """
+    if n <= 1:
+        raise ValueError("The rank n of the algebra must  be >= 2.")
+
     pipeline_builder = (
         PipelineBuilder()
         .create("Partition", generate_all_sp2n_partitions, n=n)
