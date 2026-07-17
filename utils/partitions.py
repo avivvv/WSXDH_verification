@@ -77,3 +77,33 @@ def b1(partition: Partition) -> int:
         The multiplicity ``b_1`` of the largest part ``a_1``.
     """
     return partition[a1(partition)]
+
+
+def parts(partition: Partition) -> list[int]:
+    """Return the parts of *partition* in decreasing order.
+
+    Parameters
+    ----------
+    partition:
+        A non-empty partition encoded as ``{a_j: b_j}``.
+    Returns
+    -------
+    list[int]
+        The parts of the partition, sorted in decreasing order.
+    """
+    return sorted(partition.keys(), reverse=True)
+
+
+def multiplicities(partition: Partition) -> list[int]:
+    """Return the multiplicities of *partition* in decreasing order of parts.
+
+    Parameters
+    ----------
+    partition:
+        A non-empty partition encoded as ``{a_j: b_j}``.
+    Returns
+    -------
+    list[int]
+        The multiplicities of the partition, sorted in decreasing order of parts.
+    """
+    return [partition[a] for a in parts(partition)]

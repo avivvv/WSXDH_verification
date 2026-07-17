@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
 import pandas as pd
 
@@ -27,7 +28,7 @@ class CreateStep(Step):
     Each kwarg (e.g. n=10) is stored as a column in every row of the data.
     """
 
-    def __init__(self, fn, column: str = "Partition", **kwargs):
+    def __init__(self, fn: callable[Iterable], column: str, **kwargs):
         self._fn = fn
         self._column = column
         self._kwargs = kwargs
@@ -40,7 +41,7 @@ class CreateStep(Step):
 
 
     def run(self, _: pd.DataFrame) -> pd.DataFrame:
-        data = self._fn(**self._kwargs)
+        data: Iterable = self._fn(**self._kwargs)
         df = pd.DataFrame({self._column: list(data)})
         
         for k, v in self._kwargs.items():
@@ -63,7 +64,7 @@ class ComputeStep(Step):
         .compute("product", lambda df: df["val1"] * df["val2"], vectorized=True)
     """
 
-    def __init__(self, result_col: str, fn, source_cols: list[str] = None, vectorized: bool = False):
+    def __init__(self, result_col: str, fn: callable, source_cols: list[str] = None, vectorized: bool = False):
         self._result_col = result_col
         self._fn = fn
         self._source_cols = source_cols
@@ -107,7 +108,7 @@ class VerifyStep(Step):
         .verify("belongs_to_known_family",  lambda row: ..., raise_on_fail=True)
     """
 
-    def __init__(self, result_col: str, predicate, source_col: str = None, vectorized: bool = False, raise_on_fail: bool = False):
+    def __init__(self, result_col: str, predicate: callable[bool], source_col: str = None, vectorized: bool = False, raise_on_fail: bool = False):
         self._result_col = result_col
         self._predicate = predicate
         self._source_col = source_col
@@ -208,7 +209,7 @@ class CustomStep(Step):
         .then(lambda df: df[df["func1"] > x])
     """
 
-    def __init__(self, fn, **kwargs):
+    def __init__(self, fn: callable[pd.DataFrame], **kwargs):
         self._fn = fn
         self._kwargs = kwargs
 

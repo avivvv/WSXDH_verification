@@ -1,4 +1,4 @@
 **/__pycache__/*.pyc
-results/
+results/latex/
 old_results/
 *.egg-info/

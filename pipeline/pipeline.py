@@ -1,5 +1,6 @@
 from __future__ import annotations
 import pandas as pd
+from collections.abc import Iterable
 
 from utils.styles import console, Indicators
 from .step import CustomStep, LoadStep, Step, CreateStep, ComputeStep, VerifyStep, SaveStep
@@ -49,12 +50,12 @@ class PipelineBuilder:
         return builder
 
 
-    def create(self, column: str, fn, **kwargs) -> PipelineBuilder:
-        self._steps.append(CreateStep(column, fn, **kwargs))
+    def create(self, fn: callable[Iterable], column: str = "Partition", **kwargs) -> PipelineBuilder:
+        self._steps.append(CreateStep(fn, column, **kwargs))
         return self
 
 
-    def compute(self, result_col: str, fn, source_cols: list[str] = None, vectorized: bool = False) -> PipelineBuilder:
+    def compute(self, result_col: str, fn: callable, source_cols: list[str] = None, vectorized: bool = False) -> PipelineBuilder:
         self._steps.append(ComputeStep(result_col, fn, source_cols, vectorized))
         return self
 
@@ -62,7 +63,7 @@ class PipelineBuilder:
     def verify(
         self,
         result_col: str,
-        predicate,
+        predicate: callable[bool],
         source_col: str = None,
         vectorized: bool = False,
         raise_on_fail: bool = False,
@@ -81,17 +82,17 @@ class PipelineBuilder:
         return self
     
 
-    def then(self, fn, **kwargs) -> PipelineBuilder:
+    def then(self, fn: callable[pd.DataFrame], **kwargs) -> PipelineBuilder:
         self._steps.append(CustomStep(fn, **kwargs))
         return self
 
 
     def build_pipeline(self) -> Pipeline:
-        self._validate()
+        self._validate_steps()
         return Pipeline(list(self._steps))
 
 
-    def _validate(self) -> None:
+    def _validate_steps(self) -> None:
         if not self._steps:
             raise PipelineError("Pipeline has no steps.")
         if not isinstance(self._steps[0], (CreateStep, LoadStep)):
